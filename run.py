@@ -2,22 +2,22 @@
 
 import sys
 import time
+import threading
 import EnergyDataHarvest
 
-## Run command until stop asked (ctrl+c)
+## Loop to run the scrapping of energy data page that is updated every 5 minutes.
 def realTime():
     while True:
         EnergyDataHarvest.getNRGData()
         time.sleep(300)
 
 def main() -> int:
-    command = input("> ")
+    realTimeThread = threading.Thread(target=realTime);
 
-    if (command.lower() == "run realtime"):
-        realTime()
-    elif (command.lower() == "run interupt"):
-        EnergyDataHarvest.getInterrupt()
-    return (0)
+    try:
+        realTimeThread.start();
+    except RuntimeError:
+        print("Cannot start the thread \"realTimeThread\"");
 
 if (__name__ == '__main__'):
     sys.exit(main())
