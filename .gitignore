@@ -399,3 +399,5 @@ FodyWeavers.xsd
 
 # Ennoncé
 *Énoncé*.pdf
+
+*.env
