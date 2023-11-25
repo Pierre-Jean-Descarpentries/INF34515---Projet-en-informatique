@@ -1,0 +1,35 @@
+version: '3'
+services:
+  db:
+    image: mariadb:10.5
+    hostname: energieNB_db
+    container_name: energieNB_db
+    volumes:
+      - ./database:/docker-entrypoint-initdb.d/
+    env_file:
+      - ./sql.env
+    ports:
+      - "3307:3306"
+    networks:
+      - inf34515
+
+  app:
+    container_name: energieNB_app
+    build:
+      context: ./
+    volumes:
+      - ./src/:/var/www
+    ports:
+        - "8080:8080"
+    restart: always
+    depends_on:
+      - db
+    env_file:
+      - ./app.env
+    networks:
+      inf34515:
+        aliases:
+          - inf34515.app
+
+networks:
+    inf34515:
