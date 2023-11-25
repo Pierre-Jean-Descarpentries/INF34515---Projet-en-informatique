@@ -1,5 +1,4 @@
-#!/bin/python3
-
+import os
 import sys
 import time
 import requests
@@ -7,9 +6,18 @@ import numpy as np
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.select import Select
 
 class EnergieNB:
     browser = None
+    interruptionsTable = None
+    realTimeDataTable = None
+    informationArchiveTable = None
+
+    # def __init__(self, interruption, networkData, informationArchive):
+    #     self.interruptionsTable = interruption
+    #     self.realTimeDataTable = networkData
+    #     self.informationArchiveTable = informationArchive
 
     def getNRGData(self) -> int:
         try:
@@ -68,7 +76,22 @@ class EnergieNB:
         return (0)
 
     def openBrowser(self):
-        self.browser = webdriver.Firefox()
+        option = webdriver.FirefoxOptions()
+
+        # Execute firefox without graphic interface
+        option.add_argument("--headless")
+
+        profile = webdriver.FirefoxProfile()
+        # Tell selenium to not use the default download folder
+        profile.set_preference("browser.download.folderList", 2)
+        # Set the download folder
+
+        profile.set_preference("browser.download.dir", "{}/Downloads".format(os.getcwd()))
+        # Show download progress
+        profile.set_preference("browser.download.manager.showWhenStarting", True)
+
+        option.profile = profile
+        self.browser = webdriver.Firefox(options=option)
 
     def quitBrowser(self):
         self.browser.quit()
