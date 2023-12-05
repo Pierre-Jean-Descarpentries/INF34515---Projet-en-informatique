@@ -132,16 +132,15 @@ class Archives(EnergieNB):
                 ## Get the file name
                 fileName = Utils.getDownloadedFileName(self.browser, 60)
 
-                if (fileName == None or filename != "FR-{}-{}.csv".format(year, month)):
-                    print(printColors.FAIL + "File not downloaded for archives with parameters: mois -> {}, année -> {}".format(month, year) + printColors.ENDC)
-                    return
-
                 ## If file already downloaded
-                if ("(1).csv" in fileName):
-                    print("toRm", file=sys.stdout)
-                    sys.stdout.flush()
+                if (fileName != None and "(" in fileName):
                     os.remove("Downloads/" + fileName)
                     continue
+
+                if (fileName == None or fileName != "FR-{}-{}.csv".format(year, month)):
+                    print(printColors.FAIL + "File not downloaded for archives with parameters: mois -> {}, année -> {}".format(month, year) + printColors.ENDC)
+                    continue
+
 
                 ## Move, read and put file content in database
                 try:
@@ -169,6 +168,9 @@ class Archives(EnergieNB):
 
 
     def getArchive(self, month, year):
+        fileName = None
+        fileContent = []
+
         self.browser.get("https://tso.nbpower.com/Public/fr/system_information_archive.aspx");
 
         selectYearElement = self.browser.find_element(By.ID, "ctl00_cphMainContent_ddlYear")
@@ -176,10 +178,8 @@ class Archives(EnergieNB):
         selectYear = Select(selectYearElement)
         selectMonth = Select(selectMonthElement)
         obtainData = self.browser.find_element(By.ID, "ctl00_cphMainContent_lbGetData")
-        fileName = None
-        fileContent = []
 
-        selectMonth.select_by_visible_text(str(year))
+        selectMonth.select_by_visible_text(str(month))
         selectYear.select_by_visible_text(str(year))
 
         while True:
@@ -191,14 +191,15 @@ class Archives(EnergieNB):
                 print("Error while trying to click on button for archives: ", error, file=sys.stderr)
         fileName = Utils.getDownloadedFileName(self.browser, 60)
 
+        ## Si le fichier à déjà été télécharger
+        if (FileName != None and "(" in fileName):
+            os.remove("Downloads/" + fileName)
+            return(fileName)
+
         if (fileName == None or filename != "FR-{}-{}.csv".format(year, month)):
             print(printColors.FAIL + "File not downloaded for archives with parameters: mois -> {}, année -> {}".format(month, year) + printColors.ENDC)
             return (None)
 
-        ## Si le fichier à déjà été télécharger
-        if ("(1).csv" in fileName):
-            os.remove("Downloads/" + fileName)
-            return(fileName)
 
         try:
             if (os.path.isfile("Downloads/archive/" + fileName) == True):
@@ -251,14 +252,15 @@ class Forecast(EnergieNB):
                 print(__printColors.FAIL + "Error while scrapping the files in url: {}, line number: {}. Stopping scrapping for this page . . .".format(baseLink, lv) + __printColors.ENDC)
                 break
 
+            if (fileName != None and "(" in fileName):
+                os.remove("Downloads/" + fileName)
+                continue
+
             if (fileName == lastFileName):
                 browser.navigate().back()
                 return
             lastFileName = fileName
             ## If file already downloaded
-            if ("(1).csv" in fileName):
-                os.remove("Downloads/" + fileName)
-                continue
 
             try:
                 if (os.path.isfile("Downloads/archive/" + fileName) == True):
