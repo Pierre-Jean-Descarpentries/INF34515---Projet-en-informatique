@@ -34,25 +34,50 @@ CREATE TABLE IF NOT EXISTS realTimeData (
 CREATE TABLE IF NOT EXISTS informationArchive (
   id                        VARCHAR(36) DEFAULT (UUID()),
   hours                     DATETIME NOT NULL,
-  chargeNB                  INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
-  demandeNB                 INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
-  isoNe                    INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
-  nmisa                     INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
-  quebec                    INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
-  novaScotia                INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
-  pei                       INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
+  chargeNB                  VARCHAR(50) NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
+  demandeNB                 VARCHAR(50) NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
+  isoNe                     VARCHAR(50) NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
+  nmisa                     VARCHAR(50) NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
+  quebec                    VARCHAR(50) NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
+  novaScotia                VARCHAR(50) NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
+  pei                       VARCHAR(50) NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
+  filePath                  VARCHAR(255) NOT NULL COMMENT "Le chemin vers le fichier source",
+  lastModified              DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT "La dernière modification de la ligne",
   PRIMARY KEY (id)
 );
 
--- CREATE TABLE IF NOT EXISTS chargePrevision (
---   id                        VARCHAR(36) DEFAULT (UUID()),
---   hours                     DATETIME NOT NULL,
---   chargeNB                  INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
---   demandeNB                 INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
---   iso-ne                    INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
---   nmisa                     INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
---   quebec                    INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
---   novaScotia                INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
---   pei                       INT NOT NULL COMMENT "Une valeur positive représente une exportation, une valeur négative une importation.",
---   PRIMARY KEY (id)
--- );
+CREATE TABLE IF NOT EXISTS chargePrevisionDaily (
+  id                        VARCHAR(36) DEFAULT (UUID()),
+  hours                     DATETIME NOT NULL,
+  previson                  VARCHAR(50) NOT NULL COMMENT "Valeur prévisionnelle de la consomation.",
+  filePath                  VARCHAR(255) NOT NULL COMMENT "Le chemin vers le fichier source",
+  lastModified              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT "La dernière modification de la ligne",
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS chargePrevisionHourly (
+ id                        VARCHAR(36) DEFAULT (UUID()),
+ hours                     DATETIME NOT NULL,
+ previson                  VARCHAR(50) NOT NULL COMMENT "Valeur prévisionnelle de la consomation.",
+ filePath                  VARCHAR(255) NOT NULL COMMENT "Le chemin vers le fichier source",
+ lastModified              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT "La dernière modification de la ligne",
+ PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS chargePrevisionEighteenMonths (
+ id                        VARCHAR(36) DEFAULT (UUID()),
+ hours                     DATETIME NOT NULL,
+ previson                  VARCHAR(50) NOT NULL COMMENT "Valeur prévisionnelle de la consomation.",
+ filePath                  VARCHAR(255) NOT NULL COMMENT "Le chemin vers le fichier source",
+ lastModified              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT "La dernière modification de la ligne",
+ PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS chargePrevisionWeekly (
+ id                        VARCHAR(36) DEFAULT (UUID()),
+ hours                     DATETIME NOT NULL,
+ previson                  VARCHAR(50) NOT NULL COMMENT "Valeur prévisionnelle de la consomation.",
+ filePath                  VARCHAR(255) NOT NULL COMMENT "Le chemin vers le fichier source",
+ lastModified              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT "La dernière modification de la ligne",
+ PRIMARY KEY (id)
+);
