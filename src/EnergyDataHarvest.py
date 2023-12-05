@@ -132,7 +132,7 @@ class Archives(EnergieNB):
                 ## Get the file name
                 fileName = Utils.getDownloadedFileName(self.browser, 60)
 
-                if (fileName == None || filename != "FR-{}-{}.csv".format(year, month)):
+                if (fileName == None or filename != "FR-{}-{}.csv".format(year, month)):
                     print(printColors.FAIL + "File not downloaded for archives with parameters: mois -> {}, année -> {}".format(month, year) + printColors.ENDC)
                     return
 
