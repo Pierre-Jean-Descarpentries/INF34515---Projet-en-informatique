@@ -1,85 +1,238 @@
 #!/usr/bin/env python3
-# Strange shebang because python3 isn't located at the same place in my computer and the container
+## Strange shebang because python3 isn't located at the same place in my computer and the container
 
 import os
 import sys
 import time
 import threading
-import sqlalchemy as db
 import EnergyDataHarvest
+from datetime import datetime
+from utils import Utils, printColors
 
-class printColors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
+__currentYear = datetime.now().year
+__currentMonth = datetime.now().month
+__currentDay = datetime.now().day
 
 ## Loop to run the scrapping of energy data page that is updated every 5 minutes.
-def realTime():
+def realTime(energieNB):
+    data = []
     while True:
-        EnergyDataHarvest.getNRGData()
+        data = energieNB.getNRGData(data)
         time.sleep(300)
+    print(printColors.HEADER + "RealTime thread have exited, the associated page will not be scrapped anymore. Data may be lost . . ." + printColors.ENDC)
+    return
 
-def loadDatabase():
-    print(printColors.HEADER + "Creating databases engine" + printColors.ENDC)
-    interruptionsDB = db.create_engine("mysql://{}:{}@{}:3306/interruptions".format(os.environ.get("MYSQL_USER"), os.environ.get("MYSQL_PASSWORD"), os.environ.get("MYSQL_DATABASE_HOST")))
-    networkDataDB = db.create_engine("mysql://{}:{}@{}:3306/networkData".format(os.environ.get("MYSQL_USER"), os.environ.get("MYSQL_PASSWORD"), os.environ.get("MYSQL_DATABASE_HOST")))
-    print(printColors.OKGREEN + "Databases engine created" + printColors.ENDC)
+def interruptions(interruption):
+    data = []
 
-    interruptionTable = None
-    networkDataTable = None
-    informationArchiveTable = None
-    metadata = None
+    ## Check once a day
+    while True:
+        data = interruption.getInterrupt(data)
+        time.sleep(86400)
+    print(printColors.HEADER + "Interruptions thread have exited, the associated page will not be scrapped anymore. Data may be lost . . ." + printColors.ENDC)
+    return
+
+def archives(archives):
+    currentMonth = __currentMonth
+    currentYear = __currentYear
+    sys.stdout.flush()
 
     try:
-        print(printColors.HEADER + "Connecting engines" + printColors.ENDC)
-        interruptionsDB.connect()
-        print(printColors.OKBLUE + "Interruptions database connected" + printColors.ENDC)
-        networkDataDB.connect()
-        print(printColors.OKBLUE + "Netword Data database connected" + printColors.ENDC)
-        print(printColors.OKGREEN + "All databases connected" + printColors.ENDC)
-
-        print(printColors.OKBLUE + "Extracting metadata" + printColors.ENDC)
-        metadata = db.MetaData()
-        print(printColors.OKGREEN + "Metadata extracted" + printColors.ENDC)
-
-        print(printColors.HEADER + "Connecting tables" + printColors.ENDC)
-        interruptionTable = db.Table("interruption", metadata, autoload_with=interruptionsDB)
-        print(printColors.OKBLUE + "Interruptions table connected" + printColors.ENDC)
-        interruptionTable = db.Table("realTimeData", metadata, autoload_with=networkDataDB)
-        print(printColors.OKBLUE + "realTimeData table connected" + printColors.ENDC)
-        interruptionTable = db.Table("informationArchive", metadata, autoload_with=networkDataDB)
-        print(printColors.OKBLUE + "informationArchive table connected" + printColors.ENDC)
-        print(printColors.OKGREEN + "All tables connected" + printColors.ENDC)
-
-
+        lastDownloadedFile = archives.getAllArchive()
     except:
-        print(printColors.FAIL + "Error while creating the tables connections.\nExiting..." + printColors.ENDC)
-        sys.exit(84)
+        print(printColors.FAIL + "Error while getting all the reports for the archives" + printColors.ENDC, file=sys.stderr)
+    while True:
+        downloadedFile = archives.getArchive(currentMonth, currentYear)
+        ## If no file has been downloaded, return
+        if (lastDownloadedFile == None or lastDownloadedFile == downloadedFile):
+            ## Sleep 1 day
+            time.sleep(86400)
+            continue
+        lastDownloadedFile = downloadedFile
+        ## Calculate the next month
+        currentMonth += 1
+        if (currentMonth == 13):
+            currentMonth = 1
+            currentYear += 1
+        ## Calculate the delta time between the execution time and next month
+        toWait = datetime.datetime(currentYear, currentMonth, 1) - datetime.datetime.now()
+        ## Sleep until next month
+        time.sleep(toWait)
+    print(printColors.HEADER + "archivesThread thread have exited, the associated page will not be scrapped anymore. Data may be lost . . ." + printColors.ENDC)
+    return
 
-    return ((interruptionTable, networkDataTable, informationArchiveTable))
+
+##################################  FORECAST REGION  ###########################
+def forecast5Days(forecast):
+    try:
+        forecast.getForecast5DayAll()
+    except:
+        print(printColors.FAIL + "Error while getting all the reports for the forecast 5 days forecast" + printColors.ENDC, file=sys.stderr)
+    while True:
+        ## Sleep 24 hours
+        time.sleep(86400)
+        print(printColors.HEADER + "{}: Executing scrapping for the daily - 5 days forecast".format(datetime.now()) + printColors.ENDC, file=sys.stderr)
+        energieNB.getForecast5DayLast()
+    print(printColors.HEADER + "dailyThread thread have exited, the associated page will not be scrapped anymore. Data may be lost . . ." + printColors.ENDC)
+    return
+
+def forecastHourly(forecast):
+    try:
+        forecast.getForecastHourlyAll()
+    except:
+        print(printColors.FAIL + "Error while getting all the reports for the hourly forecast" + printColors.ENDC, file=sys.stderr)
+    while True:
+        ## Sleep 1 hour
+        time.sleep(3600)
+        print(printColors.HEADER + "{}: Executing scrapping for the hourly forecast".format(datetime.now()) + printColors.ENDC, file=sys.stderr)
+        energieNB.getForecastHourlyLast()
+    print(printColors.HEADER + "hourlyThread thread have exited, the associated page will not be scrapped anymore. Data may be lost . . ." + printColors.ENDC)
+    return
+
+def forecast18Months(forecast):
+    try:
+        forecast.getForecastHourlyAll()
+    except:
+        print(printColors.FAIL + "Error while getting all the reports for the trimestrial (18 months) forecast days" + printColors.ENDC, file=sys.stderr)
+
+## Uncomment these lines if the page start to be updated again
+    # while True:
+    #     ## Sleep 1 hour
+    #     time.sleep(3600)
+    #     energieNB.getForecastHourlyLast()
+    # print(printColors.HEADER + "trimestrialThread thread have exited, the associated page will not be scrapped anymore. Data may be lost . . ." + printColors.ENDC)
+    print(printColors.HEADER + "Exiting thread \"forecast18Months\", the page don't seem to be updated since 2015" + printColors.ENDC)
+    return
+
+def forecastWeekly(forecast):
+    try:
+        forecast.getForecastWeeklyAll()
+    except:
+        print(printColors.FAIL + "Error while getting all the reports for the weekly forecast" + printColors.ENDC, file=sys.stderr)
+    while True:
+        ## Sleep 1 week (File added every friday)
+        time.sleep(604800)
+        print(printColors.HEADER + "{}: Executing scrapping for the weekly forecast".format(datetime.now()) + printColors.ENDC, file=sys.stderr)
+        energieNB.getForecastWeeklyLast()
+    print(printColors.HEADER + "weeklyThread thread have exited, the associated page will not be scrapped anymore. Data may be lost . . ." + printColors.ENDC)
+    return
+
+
+
+def initThreads(energieNBHarvest, archivesHarvest, interruptionHarvest, forecastHarvest):
+    ## Create and start realTime thread
+    realTimeThread = threading.Thread(target=realTime, args=(energieNBHarvest,))
+    try:
+        realTimeThread.start()
+        print(printColors.HEADER + "Thread RealTime started" + printColors.ENDC)
+        sys.stdout.flush()
+    except RuntimeError:
+        print(printColors.FAIL + "Cannot start the thread \"realTimeThread\"" + printColors.ENDC, file=sys.stderr);
+
+    ## Create and start interruption thread
+    interruptionThread = threading.Thread(target=interruptions, args=(interruptionHarvest,))
+    try:
+        interruptionThread.start()
+        print(printColors.HEADER + "Thread interruptions started" + printColors.ENDC)
+        sys.stdout.flush()
+    except RuntimeError:
+        print(printColors.FAIL + "Cannot start the thread \"interruptionThread\"" + printColors.ENDC, file=sys.stderr);
+
+    ## Create and start archives thread
+    archivesThread = threading.Thread(target=archives, args=(archivesHarvest,))
+    try:
+        archivesThread.start()
+        print(printColors.HEADER + "Thread archives started" + printColors.ENDC)
+        sys.stdout.flush()
+    except RuntimeError:
+        print(printColors.FAIL + "Cannot start the thread \"archivesThread\"" + printColors.ENDC, file=sys.stderr);
+
+    ## Create and start forecast daily 5days thread
+    dailyThread = threading.Thread(target=forecast5Days, args=(forecastHarvest,))
+    try:
+        archivesThread.start()
+        print(printColors.HEADER + "Thread daily-5days forecast started" + printColors.ENDC)
+        sys.stdout.flush()
+    except RuntimeError:
+        print(printColors.FAIL + "Cannot start the thread \"dailyThread\"" + printColors.ENDC, file=sys.stderr);
+
+    ## Create and start forecast hourly thread
+    hourlyThread = threading.Thread(target=forecastHourly, args=(forecastHarvest,))
+    try:
+        archivesThread.start()
+        print(printColors.HEADER + "Thread hourly forecast started" + printColors.ENDC)
+        sys.stdout.flush()
+    except RuntimeError:
+        print(printColors.FAIL + "Cannot start the thread \"hourlyThread\"" + printColors.ENDC, file=sys.stderr);
+
+    ## Create and start forecast 18months thread
+    trimestrialThread = threading.Thread(target=forecast18Months, args=(forecastHarvest,))
+    try:
+        archivesThread.start()
+        print(printColors.HEADER + "Thread trimestrial forecast started" + printColors.ENDC)
+        sys.stdout.flush()
+    except RuntimeError:
+        print(printColors.FAIL + "Cannot start the thread \"trimestrialThread\"" + printColors.ENDC, file=sys.stderr);
+
+    ## Create and start forecast weekly thread
+    weeklyThread = threading.Thread(target=forecastWeekly, args=(forecastHarvest,))
+    try:
+        archivesThread.start()
+        print(printColors.HEADER + "Thread weekly forecast started" + printColors.ENDC)
+        sys.stdout.flush()
+    except RuntimeError:
+        print(printColors.FAIL + "Cannot start the thread \"weeklyThread\"" + printColors.ENDC, file=sys.stderr);
+
+    sys.stdout.flush()
+    sys.stderr.flush()
+    ## Wait for all threads to finish or crash:
+    realTimeThread.join()
+    interruptionThread.join()
+    archivesThread.join()
+    weeklyThread.join()
+    hourlyThread.join()
+    dailyThread.join()
+    trimestrialThread.join()
+    print(printColors.FAIL + "All threads have exited. Data may be lost . . ." + printColors.ENDC)
+
 
 def main() -> int:
-    # realTimeThread = threading.Thread(target=realTime);
-    #
-    # try:
-    #     realTimeThread.start();
-    # except RuntimeError:
-    #     print("Cannot start the thread \"realTimeThread\"");
 
-    # tables = loadDatabase()
-    # energieNB = EnergyDataHarvest.EnergieNB(tables[0], tables[1], tables[2])
+    ## Create the directories to store the downloaded files
+    try:
+        os.mkdir("Downloads")
+        os.mkdir("Downloads/archive")
+        os.mkdir("Downloads/predictions")
+        os.mkdir("Downloads/predictions/daily-5days")
+        os.mkdir("Downloads/predictions/hourly")
+        os.mkdir("Downloads/predictions/18months")
+        os.mkdir("Downloads/predictions/weekly-28Days")
+    except:
+        pass
 
-    energieNB = EnergyDataHarvest.EnergieNB()
-    energieNB.openBrowser()
-    energieNB.getReport()
-    energieNB.quitBrowser()
+    utils = Utils()
+    # energieNB = EnergyDataHarvest.EnergieNB(utils)
+    archives = EnergyDataHarvest.Archives(utils)
+    # interruption = EnergyDataHarvest.Interrput(utils)
+    # forecast = EnergyDataHarvest.Forecast(utils)
+
+    ## Open browsers
+    # energieNB.openBrowser()
+    archives.openBrowser()
+    # interruption.openBrowser()
+    # forecast.openBrowser()
+
+    archives.getAllArchive()
+    # initThreads(energieNB, archives, interruption, forecast)
+
+    ## Close browsers when finished
+    # energieNB.quitBrowser()
+    archives.quitBrowser()
+    # interruption.quitBrowser()
+    # forecast.quitBrowser()
+
+    print(printColors.HEADER + "All threads have finished, exiting." + printColors.ENDC)
+    return (0)
 
 if (__name__ == '__main__'):
     sys.exit(main())
