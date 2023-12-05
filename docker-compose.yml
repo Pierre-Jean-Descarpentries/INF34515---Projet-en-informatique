@@ -8,6 +8,8 @@ services:
       - ./database:/docker-entrypoint-initdb.d/
     env_file:
       - ./sql.env
+    environment:
+      - TZ=America/Toronto
     ports:
       - "3307:3306"
     networks:
@@ -26,6 +28,8 @@ services:
       - db
     env_file:
       - ./app.env
+    environment:
+      - TZ=America/Toronto
     networks:
       inf34515:
         aliases:
