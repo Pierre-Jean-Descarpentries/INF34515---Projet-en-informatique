@@ -49,35 +49,35 @@ CREATE TABLE IF NOT EXISTS informationArchive (
 CREATE TABLE IF NOT EXISTS chargePrevisionDaily (
   id                        VARCHAR(36) DEFAULT (UUID()),
   hours                     DATETIME NOT NULL,
-  previson                  VARCHAR(50) NOT NULL COMMENT "Valeur prévisionnelle de la consomation.",
+  prevision                  VARCHAR(50) NOT NULL COMMENT "Valeur prévisionnelle de la consomation.",
   filePath                  VARCHAR(255) NOT NULL COMMENT "Le chemin vers le fichier source",
   lastModified              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT "La dernière modification de la ligne",
   PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS chargePrevisionHourly (
- id                        VARCHAR(36) DEFAULT (UUID()),
- hours                     DATETIME NOT NULL,
- previson                  VARCHAR(50) NOT NULL COMMENT "Valeur prévisionnelle de la consomation.",
- filePath                  VARCHAR(255) NOT NULL COMMENT "Le chemin vers le fichier source",
- lastModified              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT "La dernière modification de la ligne",
- PRIMARY KEY (id)
+  id                        VARCHAR(36) DEFAULT (UUID()),
+  hours                     DATETIME NOT NULL,
+  prevision                  VARCHAR(50) NOT NULL COMMENT "Valeur prévisionnelle de la consomation.",
+  filePath                  VARCHAR(255) NOT NULL COMMENT "Le chemin vers le fichier source",
+  lastModified              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT "La dernière modification de la ligne",
+  PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS chargePrevisionEighteenMonths (
- id                        VARCHAR(36) DEFAULT (UUID()),
- hours                     DATETIME NOT NULL,
- previson                  VARCHAR(50) NOT NULL COMMENT "Valeur prévisionnelle de la consomation.",
- filePath                  VARCHAR(255) NOT NULL COMMENT "Le chemin vers le fichier source",
- lastModified              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT "La dernière modification de la ligne",
- PRIMARY KEY (id)
+  id                        VARCHAR(36) DEFAULT (UUID()),
+  hours                     DATETIME NOT NULL,
+  prevision                  VARCHAR(50) NOT NULL COMMENT "Valeur prévisionnelle de la consomation.",
+  filePath                  VARCHAR(255) NOT NULL COMMENT "Le chemin vers le fichier source",
+  lastModified              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT "La dernière modification de la ligne",
+  PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS chargePrevisionWeekly (
- id                        VARCHAR(36) DEFAULT (UUID()),
- hours                     DATETIME NOT NULL,
- previson                  VARCHAR(50) NOT NULL COMMENT "Valeur prévisionnelle de la consomation.",
- filePath                  VARCHAR(255) NOT NULL COMMENT "Le chemin vers le fichier source",
- lastModified              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT "La dernière modification de la ligne",
- PRIMARY KEY (id)
+  id                        VARCHAR(36) DEFAULT (UUID()),
+  hours                     DATETIME NOT NULL,
+  prevision                  VARCHAR(50) NOT NULL COMMENT "Valeur prévisionnelle de la consomation.",
+  filePath                  VARCHAR(255) NOT NULL COMMENT "Le chemin vers le fichier source",
+  lastModified              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT "La dernière modification de la ligne",
+  PRIMARY KEY (id)
 );
