@@ -20,7 +20,6 @@ class printColors:
 
 class Utils:
     __networkDataConnection = None
-    __interruptionsConnection = None
 
     __interruptionTable = None
     __realTimeDateTable = None
@@ -73,7 +72,6 @@ class Utils:
 
     def __loadDatabase(self):
         print(printColors.HEADER + "Creating databases engine" + printColors.ENDC)
-        interruptionsDB = db.create_engine("mysql://{}:{}@{}:3306/interruptions".format(os.environ.get("MYSQL_USER"), os.environ.get("MYSQL_PASSWORD"), os.environ.get("MYSQL_DATABASE_HOST")))
         networkDataDB = db.create_engine("mysql://{}:{}@{}:3306/networkData".format(os.environ.get("MYSQL_USER"), os.environ.get("MYSQL_PASSWORD"), os.environ.get("MYSQL_DATABASE_HOST")))
         print(printColors.OKGREEN + "Databases engine created" + printColors.ENDC)
 
@@ -81,8 +79,6 @@ class Utils:
 
         try:
             print(printColors.HEADER + "Connecting engines" + printColors.ENDC)
-            self.__interruptionsConnection = interruptionsDB.connect()
-            print(printColors.OKBLUE + "Interruptions database connected" + printColors.ENDC)
             self.__networkDataConnection = networkDataDB.connect()
             print(printColors.OKBLUE + "Netword Data database connected" + printColors.ENDC)
             print(printColors.OKGREEN + "All databases connected" + printColors.ENDC)
@@ -92,7 +88,7 @@ class Utils:
             print(printColors.OKGREEN + "Metadata extracted" + printColors.ENDC)
 
             print(printColors.HEADER + "Connecting tables" + printColors.ENDC)
-            self.__interruptionTable = db.Table("interruption", metadata, autoload_with=interruptionsDB)
+            self.__interruptionTable = db.Table("interruption", metadata, autoload_with=networkDataDB)
             print(printColors.OKBLUE + "Interruptions table connected" + printColors.ENDC)
             self.__realTimeDateTable = db.Table("realTimeData", metadata, autoload_with=networkDataDB)
             print(printColors.OKBLUE + "realTimeData table connected" + printColors.ENDC)
@@ -323,10 +319,54 @@ class Utils:
             ## Create query
             query = db.insert(self.__interruptionTable).values(values)
             ## Execute query
-            self.__interruptionsConnection.execute(query)
+            self.__networkDataConnection.execute(query)
             ## Commit changes
-            self.__interruptionsConnection.commit()
+            self.__networkDataConnection.commit()
             return (True)
         except Exception as error:
             print(printColors.FAIL + "Error while adding values from interruptions in the \"interruption\" table: " + printColors.ENDC, error, file=sys.stderr)
             return (False)
+
+    def getValuesFromYear(self, type, year) -> str:
+        query = None
+        filePath = None
+
+        if (type == "1"):
+            ## Real time data
+            query = "SELECT * FROM realTimeData WHERE YEAR(updateTime) = {}".format(year)
+            filePath = "realTimeData-{}.csv".format(year)
+        elif (type == "2"):
+            ## Interruptions
+            query = "SELECT * FROM interruptions WHERE YEAR(debut) = {}".format(year)
+            filePath = "interruptions-{}.csv".format(year)
+        elif (type == "3"):
+            ## Archive
+            query = "SELECT * FROM informationArchive WHERE YEAR(hours) = {}".format(year)
+            filePath = "informationArchive-{}.csv".format(year)
+        elif (type == "4.1"):
+            ## Forecast daily
+            query = "SELECT * FROM chargePrevisionDaily WHERE YEAR(hours) = {}".format(year)
+            filePath = "chargePrevisionDaily-{}.csv".format(year)
+        elif (type == "4.2"):
+            ## Forecast hourly
+            query = "SELECT * FROM chargePrevisionHourly WHERE YEAR(hours) = {}".format(year)
+            filePath = "chargePrevisionHourly-{}.csv".format(year)
+        elif (type == "4.3"):
+            ## Forecast Weekly
+            query = "SELECT * FROM chargePrevisionWeekly WHERE YEAR(hours) = {}".format(year)
+            filePath = "chargePrevisionWeekly-{}.csv".format(year)
+        elif (type == "4.4"):
+            ## Forecast 18 months
+            query = "SELECT * FROM chargePrevisionEighteenMonths WHERE YEAR(hours) = {}".format(year)
+            filePath = "chargePrevisionEighteenMonths-{}.csv".format(year)
+
+        try:
+            queryResult = self.__networkDataConnection.execute(query)
+            rows = queryResult.fetctall()
+            if (len(rows) == 0):
+                print(printColors.OKBLUE + "No data found for the year {} for the desired type".format(year) + printColors.ENDC)
+                return (None)
+        except:
+            print(printColors.FAIL + "Error while generating csv file, please retry . . ." + printColors.ENDC)
+            return (None)
+        return (rows, filePath)

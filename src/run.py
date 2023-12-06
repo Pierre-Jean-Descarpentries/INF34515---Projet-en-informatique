@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import threading
+import pandas as pd
 import EnergyDataHarvest
 from datetime import datetime
 from utils import Utils, printColors
@@ -12,6 +13,7 @@ from utils import Utils, printColors
 __currentYear = datetime.now().year
 __currentMonth = datetime.now().month
 __currentDay = datetime.now().day
+__utils = Utils()
 
 ## Loop to run the scrapping of energy data page that is updated every 5 minutes.
 def realTime(energieNB):
@@ -183,54 +185,107 @@ def initThreads(energieNBHarvest, archivesHarvest, interruptionHarvest, forecast
     except RuntimeError:
         print(printColors.FAIL + "Cannot start the thread \"weeklyThread\"" + printColors.ENDC, file=sys.stderr);
 
-    sys.stdout.flush()
-    sys.stderr.flush()
-    ## Wait for all threads to finish or crash:
-    realTimeThread.join()
-    interruptionThread.join()
-    archivesThread.join()
-    dailyThread.join()
-    weeklyThread.join()
-    hourlyThread.join()
-    trimestrialThread.join()
-    print(printColors.FAIL + "All threads have exited. Data may be lost . . ." + printColors.ENDC)
+def generateFile(type, year):
+    (rows, filePath) = __utils.getValuesFromYear(type, year)
+    if (rows != None):
+        data = pd.DataFrame(rows)
+        data.columns = rows[0].keys()
+        data.to_csv(filePath, index=False)
 
+def prediction():
+    option = input("""Select option (1, 2, 3, 4):
+    1) Daily 5-days
+    2) Hourly
+    3) Weekly 28-days
+    4) 18 months""")
+
+    if (option == "1" or option == "2" or option == "3" or option == "4"):
+        return (option)
+    else:
+        print(printColors.FAIL + "Invalid option \"{}\"".format(option) + printColors.ENDC)
+    return (None)
+
+def export():
+    year = None
+
+    option = input("""Select option (1, 2, 3, 4):
+    1) Real time data
+    2) Interruptions
+    3) Archives
+    4) Forecast""")
+
+    if ("1" in option):
+        year = input("Desired year: ")
+    elif ("2" in option):
+        year = input("Desired year: ")
+    elif ("3" in option):
+        year = input("Desired year: ")
+    elif ("4" in option):
+        type = prediction()
+        if (type == None):
+            return
+        option += ".{}".format(type)
+        year = input("Desired year: ")
+    generateFile(type, year)
+    else:
+        print(printColors.FAIL + "Invalid option \"{}\"".format(option) + printColors.ENDC)
+    return
+
+def graph():
+    return
+
+def commands():
+    command = None
+
+    try:
+        while True:
+            command = input("> ").lower()
+            if (command == "help"):
+                print(printColors.HEADER + "Availiable commands are:\n- Export\n- Graphic\n" + printColors.ENDC)
+            elif (command == "export"):
+                export()
+            elif (command == "graphic"):
+                graph()
+            elif (not command and command != ""):
+                print(printColors.FAIL + "Invalid command \"{}\". Use help to get the list of the available commands".format(command) + printColors.ENDC)
+    except:
+        pass
 
 def main() -> int:
 
     ## Create the directories to store the downloaded files
-    try:
-        os.mkdir("Downloads")
-        os.mkdir("Downloads/archive")
-        os.mkdir("Downloads/predictions")
-        os.mkdir("Downloads/predictions/daily-5days")
-        os.mkdir("Downloads/predictions/hourly")
-        os.mkdir("Downloads/predictions/18months")
-        os.mkdir("Downloads/predictions/weekly-28Days")
-    except:
-        pass
+    # try:
+    #     os.mkdir("Downloads")
+    #     os.mkdir("Downloads/archive")
+    #     os.mkdir("Downloads/predictions")
+    #     os.mkdir("Downloads/predictions/daily-5days")
+    #     os.mkdir("Downloads/predictions/hourly")
+    #     os.mkdir("Downloads/predictions/18months")
+    #     os.mkdir("Downloads/predictions/weekly-28Days")
+    # except:
+    #     pass
 
-    utils = Utils()
-    energieNB = EnergyDataHarvest.EnergieNB(utils)
-    archives = EnergyDataHarvest.Archives(utils)
-    interruption = EnergyDataHarvest.Interrput(utils)
-    forecast = EnergyDataHarvest.Forecast(utils)
+    # energieNB = EnergyDataHarvest.EnergieNB(__utils)
+    # archives = EnergyDataHarvest.Archives(__utils)
+    # interruption = EnergyDataHarvest.Interrput(__utils)
+    # forecast = EnergyDataHarvest.Forecast(__utils)
+    #
+    # ## Open browsers
+    # energieNB.openBrowser()
+    # archives.openBrowser()
+    # interruption.openBrowser()
+    # forecast.openBrowser()
+    #
+    # initThreads(energieNB, archives, interruption, forecast)
 
-    ## Open browsers
-    energieNB.openBrowser()
-    archives.openBrowser()
-    interruption.openBrowser()
-    forecast.openBrowser()
-
-    initThreads(energieNB, archives, interruption, forecast)
+    commands()
 
     ## Close browsers when finished
-    energieNB.quitBrowser()
-    archives.quitBrowser()
-    interruption.quitBrowser()
-    forecast.quitBrowser()
+    # energieNB.quitBrowser()
+    # archives.quitBrowser()
+    # interruption.quitBrowser()
+    # forecast.quitBrowser()
 
-    print(printColors.HEADER + "All threads have finished, exiting." + printColors.ENDC)
     return (0)
 
 if (__name__ == '__main__'):
