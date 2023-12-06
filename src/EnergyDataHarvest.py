@@ -362,7 +362,7 @@ class Forecast(EnergieNB):
         option = webdriver.FirefoxOptions()
 
         # Execute firefox without graphic interface
-        # option.add_argument("--headless")
+        option.add_argument("--headless")
 
         profile = webdriver.FirefoxProfile()
         # Tell selenium to not use the default download folder
