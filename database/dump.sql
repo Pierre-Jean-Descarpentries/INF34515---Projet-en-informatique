@@ -1,19 +1,15 @@
-CREATE DATABASE IF NOT EXISTS interruptions;
-
-USE interruptions;
-
-CREATE TABLE IF NOT EXISTS interruption (
-  id              BIGINT UNSIGNED NOT NULL,
-  status          VARCHAR(255) NOT NULL,
-  debut           DATETIME NOT NULL,
-  fin             DATETIME,
-  description     TEXT,
-  PRIMARY KEY (id)
-);
-
 CREATE DATABASE IF NOT EXISTS networkData;
 
 USE networkData;
+
+CREATE TABLE IF NOT EXISTS interruption (
+    id              BIGINT UNSIGNED NOT NULL,
+    status          VARCHAR(255) NOT NULL,
+    debut           DATETIME NOT NULL,
+    fin             DATETIME,
+    description     TEXT,
+    PRIMARY KEY (id)
+);
 
 CREATE TABLE IF NOT EXISTS realTimeData (
   updateTime                DATETIME DEFAULT CURRENT_TIMESTAMP,
