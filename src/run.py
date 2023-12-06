@@ -72,7 +72,7 @@ def forecast5Days(forecast):
         ## Sleep 24 hours
         time.sleep(86400)
         print(printColors.HEADER + "{}: Executing scrapping for the daily - 5 days forecast".format(datetime.now()) + printColors.ENDC, file=sys.stderr)
-        energieNB.getForecast5DayLast()
+        forecast.getForecast5DayLast()
     print(printColors.HEADER + "dailyThread thread have exited, the associated page will not be scrapped anymore. Data may be lost . . ." + printColors.ENDC)
     return
 
@@ -85,21 +85,21 @@ def forecastHourly(forecast):
         ## Sleep 1 hour
         time.sleep(3600)
         print(printColors.HEADER + "{}: Executing scrapping for the hourly forecast".format(datetime.now()) + printColors.ENDC, file=sys.stderr)
-        energieNB.getForecastHourlyLast()
+        forecast.getForecastHourlyLast()
     print(printColors.HEADER + "hourlyThread thread have exited, the associated page will not be scrapped anymore. Data may be lost . . ." + printColors.ENDC)
     return
 
-def forecast18Months(forecast):
+def forecastEighteenMonths(forecast):
     try:
-        forecast.getForecastHourlyAll()
-    except:
+        forecast.getForecastEighteenMonthsAll()
+    except Exception as error:
         print(printColors.FAIL + "Error while getting all the reports for the trimestrial (18 months) forecast days" + printColors.ENDC, file=sys.stderr)
 
 ## Uncomment these lines if the page start to be updated again
     # while True:
     #     ## Sleep 1 hour
     #     time.sleep(3600)
-    #     energieNB.getForecastHourlyLast()
+    #     forecast.getForecastEighteenMonthsLast()
     # print(printColors.HEADER + "trimestrialThread thread have exited, the associated page will not be scrapped anymore. Data may be lost . . ." + printColors.ENDC)
     print(printColors.HEADER + "Exiting thread \"forecast18Months\", the page don't seem to be updated since 2015" + printColors.ENDC)
     return
@@ -113,7 +113,7 @@ def forecastWeekly(forecast):
         ## Sleep 1 week (File added every friday)
         time.sleep(604800)
         print(printColors.HEADER + "{}: Executing scrapping for the weekly forecast".format(datetime.now()) + printColors.ENDC, file=sys.stderr)
-        energieNB.getForecastWeeklyLast()
+        forecast.getForecastWeeklyLast()
     print(printColors.HEADER + "weeklyThread thread have exited, the associated page will not be scrapped anymore. Data may be lost . . ." + printColors.ENDC)
     return
 
@@ -138,7 +138,7 @@ def initThreads(energieNBHarvest, archivesHarvest, interruptionHarvest, forecast
     except RuntimeError:
         print(printColors.FAIL + "Cannot start the thread \"interruptionThread\"" + printColors.ENDC, file=sys.stderr);
 
-    ## Create and start archives thread
+    # ## Create and start archives thread
     archivesThread = threading.Thread(target=archives, args=(archivesHarvest,))
     try:
         archivesThread.start()
@@ -150,25 +150,25 @@ def initThreads(energieNBHarvest, archivesHarvest, interruptionHarvest, forecast
     ## Create and start forecast daily 5days thread
     dailyThread = threading.Thread(target=forecast5Days, args=(forecastHarvest,))
     try:
-        archivesThread.start()
+        dailyThread.start()
         print(printColors.HEADER + "Thread daily-5days forecast started" + printColors.ENDC)
         sys.stdout.flush()
     except RuntimeError:
         print(printColors.FAIL + "Cannot start the thread \"dailyThread\"" + printColors.ENDC, file=sys.stderr);
 
     ## Create and start forecast hourly thread
-    hourlyThread = threading.Thread(target=forecastHourly, args=(forecastHarvest,))
+    # hourlyThread = threading.Thread(target=forecastHourly, args=(forecastHarvest,))
     try:
-        archivesThread.start()
+        hourlyThread.start()
         print(printColors.HEADER + "Thread hourly forecast started" + printColors.ENDC)
         sys.stdout.flush()
     except RuntimeError:
         print(printColors.FAIL + "Cannot start the thread \"hourlyThread\"" + printColors.ENDC, file=sys.stderr);
 
     ## Create and start forecast 18months thread
-    trimestrialThread = threading.Thread(target=forecast18Months, args=(forecastHarvest,))
+    trimestrialThread = threading.Thread(target=forecastEighteenMonths, args=(forecastHarvest,))
     try:
-        archivesThread.start()
+        trimestrialThread.start()
         print(printColors.HEADER + "Thread trimestrial forecast started" + printColors.ENDC)
         sys.stdout.flush()
     except RuntimeError:
@@ -177,7 +177,7 @@ def initThreads(energieNBHarvest, archivesHarvest, interruptionHarvest, forecast
     ## Create and start forecast weekly thread
     weeklyThread = threading.Thread(target=forecastWeekly, args=(forecastHarvest,))
     try:
-        archivesThread.start()
+        weeklyThread.start()
         print(printColors.HEADER + "Thread weekly forecast started" + printColors.ENDC)
         sys.stdout.flush()
     except RuntimeError:
@@ -189,9 +189,9 @@ def initThreads(energieNBHarvest, archivesHarvest, interruptionHarvest, forecast
     realTimeThread.join()
     interruptionThread.join()
     archivesThread.join()
+    dailyThread.join()
     weeklyThread.join()
     hourlyThread.join()
-    dailyThread.join()
     trimestrialThread.join()
     print(printColors.FAIL + "All threads have exited. Data may be lost . . ." + printColors.ENDC)
 
@@ -211,25 +211,24 @@ def main() -> int:
         pass
 
     utils = Utils()
-    # energieNB = EnergyDataHarvest.EnergieNB(utils)
+    energieNB = EnergyDataHarvest.EnergieNB(utils)
     archives = EnergyDataHarvest.Archives(utils)
-    # interruption = EnergyDataHarvest.Interrput(utils)
-    # forecast = EnergyDataHarvest.Forecast(utils)
+    interruption = EnergyDataHarvest.Interrput(utils)
+    forecast = EnergyDataHarvest.Forecast(utils)
 
     ## Open browsers
-    # energieNB.openBrowser()
+    energieNB.openBrowser()
     archives.openBrowser()
-    # interruption.openBrowser()
-    # forecast.openBrowser()
+    interruption.openBrowser()
+    forecast.openBrowser()
 
-    archives.getAllArchive()
-    # initThreads(energieNB, archives, interruption, forecast)
+    initThreads(energieNB, archives, interruption, forecast)
 
     ## Close browsers when finished
-    # energieNB.quitBrowser()
+    energieNB.quitBrowser()
     archives.quitBrowser()
-    # interruption.quitBrowser()
-    # forecast.quitBrowser()
+    interruption.quitBrowser()
+    forecast.quitBrowser()
 
     print(printColors.HEADER + "All threads have finished, exiting." + printColors.ENDC)
     return (0)

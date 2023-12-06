@@ -57,9 +57,10 @@ class Utils:
     @staticmethod
     def readFile(filePath) -> np.array:
         try:
-            print(filePath)
+            print(printColors.HEADER + "Reading file: {}".format(filePath) + printColors.ENDC)
             arr = np.loadtxt(filePath, delimiter=",", dtype=str)
-            arr = arr[1:]
+            if (("predictions" in filePath) == False):
+                arr = arr[1:]
             return (arr)
         except Exception as error:
             print(printColors.FAIL + "Error while opening file: {}\n".format(filePath)+ printColors.ENDC, error, file=sys.stderr)
@@ -117,14 +118,24 @@ class Utils:
         index = 0
 
         try:
-            for content in file:
-                for line in content:
+            if (len(file) > 0 and type(file[0]) == np.ndarray):
+                for line in file:
                     values.append({
-                        "hours": toDate(line[0]),
+                        "hours": self.toDate(line[0]),
                         "prevision": line[1],
                         "filePath": filePath
                         }
                     )
+            elif (len(file) > 0):
+                values.append({
+                    "hours": self.toDate(file[0]),
+                    "prevision": file[1],
+                    "filePath": filePath
+                    }
+                )
+            else:
+                print(printColors.OKGREEN + "Empty file: {}".format(filePath) + printColors.EnergyDataHarvest)
+                return
 
             ## Create query
             query = db.insert(self.__chargePrevisionDailyTable).values(values)
@@ -132,22 +143,31 @@ class Utils:
             self.__networkDataConnection.execute(query)
             ## Commit changes
             self.__networkDataConnection.commit()
-        except:
-            print(printColors.FAIL + "Error while adding values of file \"{}\" in the \"chargePrevisionDaily\" table".format(filePath) + printColors.ENDC, file=sys.stderr)
+        except Exception as error:
+            print(printColors.FAIL + "Error while adding values of file \"{}\" in the \"chargePrevisionDaily\" table\n".format(filePath) + printColors.ENDC, file=sys.stderr)
 
     def saveForecastHourlyInDatabase(self, file, filePath):
         values = []
         index = 0
-
         try:
-            for content in file:
-                for line in content:
+            if (len(file) > 0 and type(file[0]) == np.ndarray):
+                for line in file:
                     values.append({
-                        "hours": toDate(line[0]),
+                        "hours": self.toDate(line[0]),
                         "prevision": line[1],
                         "filePath": filePath
                         }
                     )
+            elif (len(file) > 0):
+                values.append({
+                    "hours": self.toDate(file[0]),
+                    "prevision": file[1],
+                    "filePath": filePath
+                    }
+                )
+            else:
+                print(printColors.OKGREEN + "Empty file: {}".format(filePath) + printColors.EnergyDataHarvest)
+                return
 
             ## Create query
             query = db.insert(self.__chargePrevisionHourlyTable).values(values)
@@ -163,14 +183,24 @@ class Utils:
         index = 0
 
         try:
-            for content in file:
-                for line in content:
+            if (len(file) > 0 and type(file[0]) == np.ndarray):
+                for line in file:
                     values.append({
-                        "hours": toDate(line[0]),
+                        "hours": self.toDate(line[0]),
                         "prevision": line[1],
                         "filePath": filePath
                         }
                     )
+            elif (len(file) > 0):
+                values.append({
+                    "hours": self.toDate(file[0]),
+                    "prevision": file[1],
+                    "filePath": filePath
+                    }
+                )
+            else:
+                print(printColors.OKGREEN + "Empty file: {}".format(filePath) + printColors.EnergyDataHarvest)
+                return
 
             ## Create query
             query = db.insert(self.__chargePrevisionEighteenMonthsTable).values(values)
@@ -186,14 +216,24 @@ class Utils:
         index = 0
 
         try:
-            for content in file:
-                for line in content:
+            if (len(file) > 0 and type(file[0]) == np.ndarray):
+                for line in file:
                     values.append({
-                        "hours": toDate(line[0]),
+                        "hours": self.toDate(line[0]),
                         "prevision": line[1],
                         "filePath": filePath
                         }
                     )
+            elif (len(file) > 0):
+                values.append({
+                    "hours": self.toDate(file[0]),
+                    "prevision": file[1],
+                    "filePath": filePath
+                    }
+                )
+            else:
+                print(printColors.OKGREEN + "Empty file: {}".format(filePath) + printColors.EnergyDataHarvest)
+                return
 
             ## Create query
             query = db.insert(self.__chargePrevisionWeeklyTable).values(values)
@@ -229,7 +269,7 @@ class Utils:
             self.__networkDataConnection.execute(query)
             ## Commit changes
             self.__networkDataConnection.commit()
-        except:
+        except Exception as error:
             print(printColors.FAIL + "Error while adding values of file \"{}\" in the \"informationArchive\" table".format(filePath) + printColors.ENDC, file=sys.stderr)
 
     def saveRealtimeInDatabase(self, data):

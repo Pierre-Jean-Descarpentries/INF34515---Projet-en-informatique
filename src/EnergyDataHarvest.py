@@ -4,10 +4,10 @@ import time
 import utils
 import requests
 import numpy as np
-from utils import Utils, printColors
 from datetime import datetime
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from utils import Utils, printColors
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 
@@ -60,7 +60,6 @@ class EnergieNB:
         # Tell selenium to not use the default download folder
         profile.set_preference("browser.download.folderList", 2)
         # Set the download folder
-
         profile.set_preference("browser.download.dir", "{}/Downloads".format(os.getcwd()))
 
         option.profile = profile
@@ -192,7 +191,7 @@ class Archives(EnergieNB):
         fileName = Utils.getDownloadedFileName(self.browser, 60)
 
         ## Si le fichier à déjà été télécharger
-        if (FileName != None and "(" in fileName):
+        if (fileName != None and "(" in fileName):
             os.remove("Downloads/" + fileName)
             return(fileName)
 
@@ -227,43 +226,51 @@ class Archives(EnergieNB):
     ## SI LE FORMAT DE LIEN CHANGE, IL FAUDRA CHANGER LES FONCTIONS
 class Forecast(EnergieNB):
 
-    __browser5Days = None
+    __browserFiveDays = None
     __browserHourly = None
     __browserWeekly = None
-    __browser18Months = None
+    __browserEighteenMonths = None
 
-    def __linkRecursivity(self, baseLink, predictionType, browser, lvStart = 1):
+    def __linkRecursivity(self, baseLink, browser, predictionType, lvStart = 1):
         fileName = ""
         lastFileName = ""
-        filecontent = []
+        fileContent = []
 
         for lv in range(lvStart, 1000):
             try:
+                while (browser.current_url != baseLink):
+                    print(browser.current_url, baseLink)
+                    browser.back()
                 ## Find the <a> balise containing the link to download the file
                 file = browser.find_element(By.ID, "lv_{}".format(lv))
-                obtainData.click()
-                # browser.execute_script("arguments[0].click()", obtainData)
+                file.click()
+                ## Sleeping because otherwise it won't click on the file before checking for download
+                time.sleep(2)
                 if (browser.current_url != baseLink):
-                    self.__linkRecursivity(browser.current_url)
+                    print("New instance: ", browser.current_url, baseLink)
+                    self.__linkRecursivity(browser.current_url, browser, predictionType)
+                    print("Out of instance: ", baseLink)
                     continue
                 ## Get the file name
                 fileName = Utils.getDownloadedFileName(browser, 60)
-            except:
-                print(__printColors.FAIL + "Error while scrapping the files in url: {}, line number: {}. Stopping scrapping for this page . . .".format(baseLink, lv) + __printColors.ENDC)
-                break
+                time.sleep(1)
+            except Exception as error:
+                print(printColors.FAIL + "Error while scrapping the files in url: {}, line number: {}. Stopping scrapping for this page . . .\n".format(baseLink, lv) + printColors.ENDC, file=sys.stderr)
 
+            ## If file already downloaded
             if (fileName != None and "(" in fileName):
                 os.remove("Downloads/" + fileName)
                 continue
 
             if (fileName == lastFileName):
-                browser.navigate().back()
+                tmp = browser.current_url
+                browser.back()
+                print("BASE_URL: {}, {} -> {}".format(baseLink, tmp, browser.current_url))
                 return
             lastFileName = fileName
-            ## If file already downloaded
 
             try:
-                if (os.path.isfile("Downloads/archive/" + fileName) == True):
+                if (os.path.isfile("Downloads/predictions/{}/{}".format(predictionType, fileName)) == True):
                     try:
                         os.remove("Downloads/" + fileName)
                         continue
@@ -271,7 +278,7 @@ class Forecast(EnergieNB):
                         pass
                 else:
                     os.rename("Downloads/" + fileName, "Downloads/predictions/{}/{}".format(predictionType, fileName))
-                    fileName = "Downloads/archive/" + fileName
+                    fileName = "Downloads/predictions/{}/{}".format(predictionType, fileName)
             except Exception as error:
                 print(error)
                 try:
@@ -281,14 +288,14 @@ class Forecast(EnergieNB):
                 continue
 
             ## Put in array format to append every changes at once
-            fileName = "Downloads/predictions/{}/{}".format(predictionType, fileName)
-            fileContent += [Utils.readFile(fileName)]
+            # fileContent = Utils.readFile(fileName)
 
             if (predictionType == "daily-5days"):
-                self.utils.saveForecast5DaysInDatabase(fileContent, fileName)
+                pass
+                # self.utils.saveForecast5DaysInDatabase(fileContent, fileName)
             elif (predictionType == "hourly"):
                 self.utils.saveForecastHourlyInDatabase(fileContent, fileName)
-            elif (predictionType == "weekly-28days"):
+            elif (predictionType == "weekly-28Days"):
                 self.utils.saveForecastWeeklyInDatabase(fileContent, fileName)
             elif (predictionType == "18months"):
                 self.utils.saveForecastEighteenInDatabase(fileContent, fileName)
@@ -297,68 +304,82 @@ class Forecast(EnergieNB):
     def getForecast5DayAll(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\daily%205-day"
 
-        self.__linkRecursivity(baseLink, self.__browser5Days, "daily-5days")
+        self.__browserFiveDays.get(baseLink)
+        time.sleep(1)
+        self.__linkRecursivity(baseLink, self.__browserFiveDays, "daily-5days")
 
     def getForecast5DayLast(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\daily%205-day"
 
-        self.__linkRecursivity(baseLink, self.__browser5Days, "daily-5days", 2)
+        self.__browserFiveDays.get(baseLink)
+        time.sleep(1)
+        self.__linkRecursivity(baseLink, self.__browserFiveDays, "daily-5days", 2)
 
     def getForecastHourlyAll(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\hourly"
 
-        self.__linkRecursivity(baseLink, self.__browser5Days, "hourly")
+        self.__browserHourly.get(baseLink)
+        time.sleep(1)
+        self.__linkRecursivity(baseLink, self.__browserHourly, "hourly")
 
     def getForecastHourlyLast(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\hourly"
 
-        self.__linkRecursivity(baseLink, self.__browser5Days, "hourly", 2)
+        self.__browserHourly.get(baseLink)
+        time.sleep(1)
+        self.__linkRecursivity(baseLink, self.__browserHourly, "hourly", 2)
 
     def getForecastWeeklyAll(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\weekly%2028-day"
 
-        self.__linkRecursivity(baseLink, self.__browser5Days, "weekly-28days")
+        self.__browserWeekly.get(baseLink)
+        time.sleep(1)
+        self.__linkRecursivity(baseLink, self.__browserWeekly, "weekly-28Days")
 
     def getForecastWeeklyLast(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\weekly%2028-day"
 
-        self.__linkRecursivity(baseLink, self.__browser5Days, "weekly-28days", 2)
+        self.__browserWeekly.get(baseLink)
+        time.sleep(1)
+        self.__linkRecursivity(baseLink, self.__browserWeekly, "weekly-28Days", 2)
 
-    def getForecastWeeklyAll(self):
+    def getForecastEighteenMonthsAll(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\quarterly%2018-month"
 
-        self.__linkRecursivity(baseLink, self.__browser5Days, "18months")
+        self.__browserEighteenMonths.get(baseLink)
+        time.sleep(1)
+        self.__linkRecursivity(baseLink, self.__browserEighteenMonths, "18months")
 
-    def getForecastWeeklyLast(self):
+    def getForecastEighteenMonthsLast(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\quarterly%2018-month"
 
-        self.__linkRecursivity(baseLink, self.__browser5Days, "18months", 2)
+        self.__browserEighteenMonths.get(baseLink)
+        time.sleep(1)
+        self.__linkRecursivity(baseLink, self.__browserEighteenMonths, "18months", 2)
 
 ## Redefining the methodes openBrowser and quitBrowser form class Forecast because it uses 4 browsers
     def openBrowser(self):
         option = webdriver.FirefoxOptions()
 
         # Execute firefox without graphic interface
-        option.add_argument("--headless")
+        # option.add_argument("--headless")
 
         profile = webdriver.FirefoxProfile()
         # Tell selenium to not use the default download folder
         profile.set_preference("browser.download.folderList", 2)
-        # Set the download folder
 
+        # Set the download folder
         profile.set_preference("browser.download.dir", "{}/Downloads".format(os.getcwd()))
-        # Show download progress
-        profile.set_preference("browser.download.manager.showWhenStarting", True)
 
         option.profile = profile
-        self.__browser5Days = webdriver.Firefox(options=option)
+        self.__browserFiveDays = webdriver.Firefox(options=option)
         self.__browserHourly = webdriver.Firefox(options=option)
         self.__browserWeekly = webdriver.Firefox(options=option)
-        self.__browser18Months = webdriver.Firefox(options=option)
+        self.__browserEighteenMonths = webdriver.Firefox(options=option)
 
 
     def quitBrowser(self):
-        self.__browser5Days.quit()
+        self.__browserFiveDays.quit()
         self.__browserHourly.quit()
         self.__browserWeekly.quit()
-        self.__browser18Months.quit()
+        self.__browserEighteenMonths.quit()
