@@ -2,25 +2,30 @@ import os
 import sys
 import time
 import utils
+import logging
 import requests
 import numpy as np
+from utils import Utils
 from datetime import datetime
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from utils import Utils, printColors
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 
-__printColors = printColors()
+logger = logging.getLogger("appLogger")
+
+missingFileLogger = logging.getLogger("missingFile")
+missingFileLogger.basicConfig(filename='missingFile.log', filemode='w', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+
 
 class EnergieNB:
-    utils = None
+    database = None
     currentYear = datetime.now().year
     currentMonth = datetime.now().month
     browser = None
 
-    def __init__(self, utils):
-        self.utils = utils
+    def __init__(self, database):
+        self.database = database
 
     def getNRGData(self, data) -> np.array:
         try:
@@ -47,7 +52,7 @@ class EnergieNB:
             else:
                 return ([])
         except Exception as error:
-            print("NRGData error: ", error, file=sys.stderr)
+            logger.warning("NRGData error: {}".format(error))
             return (data)
 
     def openBrowser(self):
@@ -89,7 +94,7 @@ class Interrput(EnergieNB):
             if (self.utils.saveInterruptionsInDatabase(data) == True):
                 data = []
         except Exception as error:
-            print("Error while getting interruptions: ", error, file=sys.stderr)
+            logger.warning("Error while getting interruptions: {}".format(error))
         return (data)
 
 
@@ -137,7 +142,7 @@ class Archives(EnergieNB):
                     continue
 
                 if (fileName == None or fileName != "FR-{}-{}.csv".format(year, month)):
-                    print(printColors.FAIL + "File not downloaded for archives with parameters: mois -> {}, année -> {}".format(month, year) + printColors.ENDC)
+                    missingFileLogger.warning("File not downloaded for archives with parameters: mois -> {}, année -> {}".format(month, year))
                     continue
 
 
@@ -157,7 +162,7 @@ class Archives(EnergieNB):
                         self.utils.saveArchiveInDatabase(fileContent, fileName)
                         time.sleep(1)
                 except Exception as error:
-                    print(error)
+                    logger.warning(error)
                     try:
                         os.remove("Downloads/" + fileName)
                     except:
@@ -196,7 +201,7 @@ class Archives(EnergieNB):
             return(fileName)
 
         if (fileName == None or filename != "FR-{}-{}.csv".format(year, month)):
-            print(printColors.FAIL + "File not downloaded for archives with parameters: mois -> {}, année -> {}".format(month, year) + printColors.ENDC)
+            missingFileLogger.warning("File not downloaded for archives with parameters: mois -> {}, année -> {}".format(month, year))
             return (None)
 
 
@@ -238,24 +243,22 @@ class Forecast(EnergieNB):
 
         for lv in range(lvStart, 1000):
             try:
-                while (browser.current_url != baseLink):
-                    print(browser.current_url, baseLink)
-                    browser.back()
                 ## Find the <a> balise containing the link to download the file
                 file = browser.find_element(By.ID, "lv_{}".format(lv))
                 file.click()
                 ## Sleeping because otherwise it won't click on the file before checking for download
                 time.sleep(2)
                 if (browser.current_url != baseLink):
-                    print("New instance: ", browser.current_url, baseLink)
+                    logger.debug("New instance:\n  - Current url: {}\n  - Base link: {}".format(browser.current_url, baseLink))
                     self.__linkRecursivity(browser.current_url, browser, predictionType)
-                    print("Out of instance: ", baseLink)
+                    logger.debug("Out of instance: {}".format(baseLink))
                     continue
                 ## Get the file name
                 fileName = Utils.getDownloadedFileName(browser, 60)
                 time.sleep(1)
             except Exception as error:
-                print(printColors.FAIL + "Error while scrapping the files in url: {}, line number: {}. Stopping scrapping for this page . . .\n".format(baseLink, lv) + printColors.ENDC, file=sys.stderr)
+                logger.debug("Error while scrapping the files in url: {}, line number: {}. Stopping scrapping for this page . . .\n".format(baseLink, lv))
+                missingFile.info("Stopped scrapping files in the url: {}.\n{} files gathered".format(baseLink, lv - 1))
 
             ## If file already downloaded
             if (fileName != None and "(" in fileName):
@@ -265,7 +268,6 @@ class Forecast(EnergieNB):
             if (fileName == lastFileName):
                 tmp = browser.current_url
                 browser.back()
-                print("BASE_URL: {}, {} -> {}".format(baseLink, tmp, browser.current_url))
                 return
             lastFileName = fileName
 

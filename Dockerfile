@@ -14,4 +14,4 @@ RUN apt-get install -y firefox-esr
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["tail", "-f", "/dev/null"]
+CMD ["./run.py"]
