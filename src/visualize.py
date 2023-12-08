@@ -1,4 +1,5 @@
 import logging
+import numpy as np
 import pandas as pd
 from utils import printColors
 import matplotlib.pyplot as plt
@@ -49,15 +50,15 @@ class Interraction:
                 if (command == "help"):
                     print(printColors.HEADER + "Availiable commands are:\n- Export\n- Graphic\n" + printColors.ENDC)
                 elif (command == "export"):
-                    export()
+                    Export.export()
                 elif (command == "graphic"):
-                    graph()
+                    Graph.graph()
                 elif (not command and command != ""):
                     print(printColors.FAIL + "Invalid command \"{}\". Use help to get the list of the available commands".format(command) + printColors.ENDC)
         except:
             pass
 
-class Export:
+class Export(Interraction):
     __databaseInstance = None
 
     def __init__(self, databaseInstance):
@@ -108,7 +109,7 @@ class Export:
         self.__generateFile(type, year)
         return
 
-class Graph:
+class Graph(Interraction):
     __databaseInstance = None
 
     def __init__(self, databaseInstance):
@@ -124,9 +125,9 @@ class Graph:
         graph.xlabel(xLabel)
         graph.ylabel(yLabel)
         fig, ax = graph.subplots()
-        ax.stackplot(np.arrange(1, 52), values, labels=labels)
+        ax.stackplot(np.arange(1, 52), values, labels=labels)
 
-    def __createPlots(self, graph, values, xRange=np.arrange(1, 52), xLabel="Weeks", yLabel="Charge"):
+    def __createPlots(self, graph, values, xRange=np.arange(1, 52), xLabel="Weeks", yLabel="Charge"):
         plt.xlabel(xLabel)
         plt.ylabel(yLabel)
         fig, ax = plt.subplots()
@@ -148,7 +149,7 @@ class Graph:
         reserveMarginVal = np.array([])
 
         ## Get the ressources from the database
-        for (year in years):
+        for year in years:
             if (type == "1"):
                 chargeNBVal = np.vstack(chargeNBVal, this.__databaseInstance.getRealTimeDataValueFromYear("chargeNB", year))
                 demandeNBVal = np.vstack(demandeNBVal, this.__databaseInstance.getRealTimeDataValueFromYear("demandeNB", year))

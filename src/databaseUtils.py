@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 import numpy as np
 from utils import Utils
 import sqlalchemy as db
@@ -248,7 +249,7 @@ class Database:
             self.__networkDataConnection.commit()
             return (True)
         except Exception as error:
-            logger.error("Error while adding values of file \"{}\" in the \"realTimeData\" table\n".format(filePath))
+            logger.error("Error while adding values of file in the \"realTimeData\" table\n")
             return (False)
 
     ## Return a boolean because it will stack up the data if the database is unavialable
@@ -259,7 +260,7 @@ class Database:
             ## Append new values in the values array
             for line in data:
                 query = db.select(self.__interruptionTable).where(self.__interruptionTable.c.id == line[0])
-                if (self.__interruptionsConnection.execute(query).all() == []):
+                if (self.__networkDataConnection.execute(query).all() == []):
                     values.append({
                         "id": line[0],
                         "status": line[1],
@@ -278,7 +279,7 @@ class Database:
             self.__networkDataConnection.commit()
             return (True)
         except Exception as error:
-            logger.error("Error while adding values of file \"{}\" in the \"interruption\" table\n".format(filePath))
+            logger.error("Error while adding values in the \"interruption\" table\n%s", error)
             return (False)
 
     def getRealTimeDataValueFromYear(self, columName, year):

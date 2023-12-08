@@ -1,7 +1,6 @@
 import os
 import sys
 import time
-import utils
 import logging
 import requests
 import numpy as np
@@ -11,21 +10,27 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
+from selenium.webdriver.remote.command import Command
 
 logger = logging.getLogger("appLogger")
 
-missingFileLogger = logging.getLogger("missingFile")
-missingFileLogger.basicConfig(filename='missingFile.log', filemode='w', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+## Create and initialize a logger
+missingFileLogger = logging.getLogger("appLogger")
+basicLogger = logging.FileHandler("app.log", mode='w')
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+basicLogger.setFormatter(formatter)
+basicLogger.setLevel(logging.INFO)
+missingFileLogger.addHandler(basicLogger)
 
 
 class EnergieNB:
-    database = None
+    databaseUtils = None
     currentYear = datetime.now().year
     currentMonth = datetime.now().month
     browser = None
 
     def __init__(self, database):
-        self.database = database
+        self.databaseUtils = database
 
     def getNRGData(self, data) -> np.array:
         try:
@@ -47,7 +52,7 @@ class EnergieNB:
             for number in txt[45:56]:
                 tmp.append(float(number))
             data.append(tmp)
-            if (self.utils.saveRealtimeInDatabase(data) == False):
+            if (self.databaseUtils.saveRealtimeInDatabase(data) == False):
                 return (data)
             else:
                 return ([])
@@ -68,10 +73,16 @@ class EnergieNB:
         profile.set_preference("browser.download.dir", "{}/Downloads".format(os.getcwd()))
 
         option.profile = profile
-        self.browser = webdriver.Firefox(options=option)
+
+        try:
+            self.browser = webdriver.Firefox(options=option)
+            self.browser.implicitly_wait(5)
+        except:
+            logger.error("Cannot open browser: %s", error)
 
     def quitBrowser(self):
-        self.browser.quit()
+        if (self.browser != None):
+            self.browser.quit()
 
 
 ### DATA VALUES (heure d'Atlentique)
@@ -91,7 +102,7 @@ class Interrput(EnergieNB):
                     txt[x + 5] = ""
                     txt.remove("")
                 data.insert(0, txt[x:x + 5])
-            if (self.utils.saveInterruptionsInDatabase(data) == True):
+            if (self.databaseUtils.saveInterruptionsInDatabase(data) == True):
                 data = []
         except Exception as error:
             logger.warning("Error while getting interruptions: {}".format(error))
@@ -105,6 +116,8 @@ class Archives(EnergieNB):
         fileName = None
         fileContent = []
 
+        if (self.browser == None):
+            return
         ## Charge la page dans le browser
         self.browser.get("https://tso.nbpower.com/Public/fr/system_information_archive.aspx");
 
@@ -159,8 +172,8 @@ class Archives(EnergieNB):
                         fileName = "Downloads/archive/" + fileName
                         ## Put in array format to append every changes at once
                         fileContent += [Utils.readFile(fileName)]
-                        self.utils.saveArchiveInDatabase(fileContent, fileName)
-                        time.sleep(1)
+                        self.databaseUtils.saveArchiveInDatabase(fileContent, fileName)
+                        time.sleep(2)
                 except Exception as error:
                     logger.warning(error)
                     try:
@@ -175,7 +188,12 @@ class Archives(EnergieNB):
         fileName = None
         fileContent = []
 
-        self.browser.get("https://tso.nbpower.com/Public/fr/system_information_archive.aspx");
+        try:
+            if (self.browser == None):
+                return
+            self.browser.get("https://tso.nbpower.com/Public/fr/system_information_archive.aspx");
+        except Exception as error:
+            logger.error("getArchive browser.get error: %s", error)
 
         selectYearElement = self.browser.find_element(By.ID, "ctl00_cphMainContent_ddlYear")
         selectMonthElement = self.browser.find_element(By.ID, "ctl00_cphMainContent_ddlMonth")
@@ -192,15 +210,15 @@ class Archives(EnergieNB):
                 # self.browser.execute_script("arguments[0].click();", obtainData)
                 break
             except Exception as error:
-                print("Error while trying to click on button for archives: ", error, file=sys.stderr)
+                logger.error("Error while trying to click on button for archives: %s", error)
         fileName = Utils.getDownloadedFileName(self.browser, 60)
 
         ## Si le fichier à déjà été télécharger
         if (fileName != None and "(" in fileName):
             os.remove("Downloads/" + fileName)
-            return(fileName)
+            return(None)
 
-        if (fileName == None or filename != "FR-{}-{}.csv".format(year, month)):
+        if (fileName == None or fileName != "FR-{}-{}.csv".format(year, month)):
             missingFileLogger.warning("File not downloaded for archives with parameters: mois -> {}, année -> {}".format(month, year))
             return (None)
 
@@ -215,8 +233,8 @@ class Archives(EnergieNB):
                 os.rename("Downloads/" + fileName, "Downloads/archive/" + fileName)
                 fileName = "Downloads/archive/" + fileName
                 ## Put in array format to append every changes at once
-                fileContent = [[Utils.readFile(fileName)]]
-                self.utils.saveArchiveInDatabase(fileContent, fileName)
+                fileContent = [Utils.readFile(fileName)]
+                self.databaseUtils.saveArchiveInDatabase(fileContent, fileName)
                 return (fileName)
         except Exception as error:
             print(error)
@@ -247,18 +265,17 @@ class Forecast(EnergieNB):
                 file = browser.find_element(By.ID, "lv_{}".format(lv))
                 file.click()
                 ## Sleeping because otherwise it won't click on the file before checking for download
-                time.sleep(2)
                 if (browser.current_url != baseLink):
                     logger.debug("New instance:\n  - Current url: {}\n  - Base link: {}".format(browser.current_url, baseLink))
                     self.__linkRecursivity(browser.current_url, browser, predictionType)
                     logger.debug("Out of instance: {}".format(baseLink))
                     continue
+                time.sleep(2)
                 ## Get the file name
                 fileName = Utils.getDownloadedFileName(browser, 60)
-                time.sleep(1)
             except Exception as error:
                 logger.debug("Error while scrapping the files in url: {}, line number: {}. Stopping scrapping for this page . . .\n".format(baseLink, lv))
-                missingFile.info("Stopped scrapping files in the url: {}.\n{} files gathered".format(baseLink, lv - 1))
+                missingFileLogger.info("Stopped scrapping files in the url: {}.\n{} files gathered".format(baseLink, lv - 1))
 
             ## If file already downloaded
             if (fileName != None and "(" in fileName):
@@ -281,8 +298,9 @@ class Forecast(EnergieNB):
                 else:
                     os.rename("Downloads/" + fileName, "Downloads/predictions/{}/{}".format(predictionType, fileName))
                     fileName = "Downloads/predictions/{}/{}".format(predictionType, fileName)
+                    time.sleep(1)
+                    fileContent = Utils.readFile(fileName)
             except Exception as error:
-                print(error)
                 try:
                     os.remove("Downloads/" + fileName)
                 except:
@@ -293,19 +311,20 @@ class Forecast(EnergieNB):
             # fileContent = Utils.readFile(fileName)
 
             if (predictionType == "daily-5days"):
-                pass
-                # self.utils.saveForecast5DaysInDatabase(fileContent, fileName)
+                self.databaseUtils.saveForecast5DaysInDatabase(fileContent, fileName)
             elif (predictionType == "hourly"):
-                self.utils.saveForecastHourlyInDatabase(fileContent, fileName)
+                self.databaseUtils.saveForecastHourlyInDatabase(fileContent, fileName)
             elif (predictionType == "weekly-28Days"):
-                self.utils.saveForecastWeeklyInDatabase(fileContent, fileName)
+                self.databaseUtils.saveForecastWeeklyInDatabase(fileContent, fileName)
             elif (predictionType == "18months"):
-                self.utils.saveForecastEighteenInDatabase(fileContent, fileName)
-            time.sleep(1)
+                self.databaseUtils.saveForecastEighteenInDatabase(fileContent, fileName)
+            time.sleep(1.5)
 
     def getForecast5DayAll(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\daily%205-day"
 
+        if (self.__browserFiveDays == None):
+            return
         self.__browserFiveDays.get(baseLink)
         time.sleep(1)
         self.__linkRecursivity(baseLink, self.__browserFiveDays, "daily-5days")
@@ -313,6 +332,8 @@ class Forecast(EnergieNB):
     def getForecast5DayLast(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\daily%205-day"
 
+        if (self.__browserFiveDays == None):
+            return
         self.__browserFiveDays.get(baseLink)
         time.sleep(1)
         self.__linkRecursivity(baseLink, self.__browserFiveDays, "daily-5days", 2)
@@ -320,6 +341,8 @@ class Forecast(EnergieNB):
     def getForecastHourlyAll(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\hourly"
 
+        if (self.__browserHourly == None):
+            return
         self.__browserHourly.get(baseLink)
         time.sleep(1)
         self.__linkRecursivity(baseLink, self.__browserHourly, "hourly")
@@ -327,6 +350,8 @@ class Forecast(EnergieNB):
     def getForecastHourlyLast(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\hourly"
 
+        if (self.__browserHourly == None):
+            return
         self.__browserHourly.get(baseLink)
         time.sleep(1)
         self.__linkRecursivity(baseLink, self.__browserHourly, "hourly", 2)
@@ -334,6 +359,8 @@ class Forecast(EnergieNB):
     def getForecastWeeklyAll(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\weekly%2028-day"
 
+        if (self.__browserWeekly == None):
+            return
         self.__browserWeekly.get(baseLink)
         time.sleep(1)
         self.__linkRecursivity(baseLink, self.__browserWeekly, "weekly-28Days")
@@ -341,6 +368,8 @@ class Forecast(EnergieNB):
     def getForecastWeeklyLast(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\weekly%2028-day"
 
+        if (self.__browserWeekly == None):
+            return
         self.__browserWeekly.get(baseLink)
         time.sleep(1)
         self.__linkRecursivity(baseLink, self.__browserWeekly, "weekly-28Days", 2)
@@ -348,6 +377,8 @@ class Forecast(EnergieNB):
     def getForecastEighteenMonthsAll(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\quarterly%2018-month"
 
+        if (self.__browserEighteenMonths == None):
+            return
         self.__browserEighteenMonths.get(baseLink)
         time.sleep(1)
         self.__linkRecursivity(baseLink, self.__browserEighteenMonths, "18months")
@@ -355,6 +386,8 @@ class Forecast(EnergieNB):
     def getForecastEighteenMonthsLast(self):
         baseLink = "https://tso.nbpower.com/Public/fr/op/market/report_list.aspx?path=\load%20forecast\quarterly%2018-month"
 
+        if (self.__browserEighteenMonths == None):
+            return
         self.__browserEighteenMonths.get(baseLink)
         time.sleep(1)
         self.__linkRecursivity(baseLink, self.__browserEighteenMonths, "18months", 2)
@@ -374,14 +407,32 @@ class Forecast(EnergieNB):
         profile.set_preference("browser.download.dir", "{}/Downloads".format(os.getcwd()))
 
         option.profile = profile
-        self.__browserFiveDays = webdriver.Firefox(options=option)
-        self.__browserHourly = webdriver.Firefox(options=option)
-        self.__browserWeekly = webdriver.Firefox(options=option)
-        self.__browserEighteenMonths = webdriver.Firefox(options=option)
+
+        try:
+            self.__browserFiveDays = webdriver.Firefox(options=option)
+            ## Tell the driver to wait 5 sec until decreating an element isn't found
+            self.__browserFiveDays.implicitly_wait(5)
+        except:
+            logger.error("Cannot open browser for forecast 5 days")
+
+        try:
+            self.__browserHourly = webdriver.Firefox(options=option)
+            self.__browserHourly.implicitly_wait(5)
+        except:
+            logger.error("Cannot open browser for forecast hourly")
+
+        try:
+            self.__browserWeekly = webdriver.Firefox(options=option)
+            self.__browserWeekly.implicitly_wait(5)
+        except:
+            logger.error("Cannot open browser for forecast weekly")
+
+        ## Not initializing one since the programm don't scrapp the page
+        # self.__browserEighteenMonths = webdriver.Firefox(options=option)
 
 
     def quitBrowser(self):
         self.__browserFiveDays.quit()
         self.__browserHourly.quit()
         self.__browserWeekly.quit()
-        self.__browserEighteenMonths.quit()
+        # self.__browserEighteenMonths.quit()

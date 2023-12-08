@@ -1,6 +1,7 @@
 import sys
 import time
 import logging
+import numpy as np
 from selenium import webdriver
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -43,7 +44,7 @@ class Utils:
     @staticmethod
     def readFile(filePath) -> np.array:
         try:
-            print(printColors.HEADER + "Reading file: {}".format(filePath) + printColors.ENDC)
+            logger.info("Reading file: {}".format(filePath))
             arr = np.loadtxt(filePath, delimiter=",", dtype=str)
             if (("predictions" in filePath) == False):
                 arr = arr[1:]

@@ -4,16 +4,19 @@
 import os
 import sys
 import logging
-import visualize
-import appThreads
-import databaseUtils
+from appThreads import Threads
+from visualize import Interraction
+from databaseUtils import Database
 
 def main() -> int:
     databaseInstance = Database()
-    threads = Threads()
+    threads = Threads(databaseInstance)
     ## Create and initialize a logger
     logger = logging.getLogger("appLogger")
-    logger.basicConfig(filename='app.log', filemode='w', format='%(asctime)s - %(levelname)s - %(message)s')
+    basicLogger = logging.FileHandler("app.log", mode='w')
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    basicLogger.setFormatter(formatter)
+    logger.addHandler(basicLogger)
 
     ## Create the directories to store the downloaded files
     try:
