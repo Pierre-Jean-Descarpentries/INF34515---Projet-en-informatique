@@ -20,8 +20,13 @@ class printColors:
     UNDERLINE = '\033[4m'
 
 class Utils:
-    @staticmethod
-    def getDownloadedFileName(driver, waitTime):
+    gettingDownloaded = False
+
+    def getDownloadedFileName(self, driver, waitTime):
+        ## Making other threads wait until the thread checking the download finish
+        while self.gettingDownloaded == True:
+            pass
+
         WebDriverWait(driver,10).until(EC.new_window_is_opened)
         driver.switch_to.window(driver.window_handles[-1])
         driver.get("about:downloads")
