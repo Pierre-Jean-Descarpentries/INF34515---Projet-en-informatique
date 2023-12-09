@@ -6,6 +6,7 @@ services:
     container_name: energieNB_db
     volumes:
       - ./database:/docker-entrypoint-initdb.d/
+      - ./database/data:/dbData
     env_file:
       - ./sql.env
     environment:
