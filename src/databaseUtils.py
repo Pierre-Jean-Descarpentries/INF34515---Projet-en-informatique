@@ -285,14 +285,13 @@ class Database:
     def getRealTimeDataValueFromYear(self, columName, year):
         query = "SELECT {} FROM realTimeData WHERE YEAR(updateTime) = {}".format(columnName, year)
         try:
-            queryResult = self.__networkDataConnection.execute(query)
-            rows = queryResult.fetctall()
+            queryResult = self.__networkDataConnection.execute(db.text(query))
+            rows = queryResult.fetchall()
             if (len(rows) == 0):
                 print(printColors.OKBLUE + "No data found for the year {} for the desired type".format(year) + printColors.ENDC)
                 return (None)
-        except:
-            logger.warning("Error while executing the query in getRealTimeDataValueFromYear.")
-            print(printColors.FAIL + "Error while executing the query in getRealTimeDataValueFromYear.")
+        except Exception as error:
+            logger.warning("Error while executing the query in getRealTimeDataValueFromYea: %s", error)
             return (None)
         return (rows)
 
@@ -305,7 +304,7 @@ class Database:
             query = "SELECT * FROM realTimeData WHERE YEAR(updateTime) = {}".format(year)
         elif (type == "2"):
             ## Interruptions
-            query = "SELECT * FROM interruptions WHERE YEAR(debut) = {}".format(year)
+            query = "SELECT * FROM interruption WHERE YEAR(debut) = {}".format(year)
         elif (type == "3"):
             ## Archive
             query = "SELECT * FROM informationArchive WHERE YEAR(hours) = {}".format(year)
@@ -323,12 +322,12 @@ class Database:
             query = "SELECT * FROM chargePrevisionEighteenMonths WHERE YEAR(hours) = {}".format(year)
 
         try:
-            queryResult = self.__networkDataConnection.execute(query)
-            rows = queryResult.fetctall()
+            queryResult = self.__networkDataConnection.execute(db.text(query))
+            rows = queryResult.fetchall()
             if (len(rows) == 0):
                 print(printColors.OKBLUE + "No data found for the year {} for the desired type".format(year) + printColors.ENDC)
                 return (None)
-        except:
-            print(printColors.FAIL + "Error while executing the query in getValuesFromYear.")
+        except Exception as error:
+            logger.warning("Error while executing the query in getValuesFromYear: %s", error)
             return (None)
         return (rows)

@@ -10,7 +10,9 @@ from databaseUtils import Database
 
 def main() -> int:
     databaseInstance = Database()
+    interraction = Interraction(databaseInstance)
     threads = Threads(databaseInstance)
+
     ## Create and initialize a logger
     logger = logging.getLogger("appLogger")
     basicLogger = logging.FileHandler("app.log", mode='w')
@@ -35,7 +37,7 @@ def main() -> int:
     threads.initThreads()
     logger.debug("All threads started")
 
-    Interraction.commands()
+    interraction.commands()
 
     logger.debug("Closing browsers")
     threads.closeAllBrowsers()

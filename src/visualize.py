@@ -7,13 +7,21 @@ import matplotlib.pyplot as plt
 logger = logging.getLogger("appLogger")
 
 class Interraction:
+
+    __export = None
+    __graph = None
+
+    def __init__(self, databaseInstance):
+        self.__export = Export(databaseInstance)
+        self.__graph = Graph(databaseInstance)
+
     @staticmethod
     def getPredictionType():
         option = input("""Select option (1, 2, 3, 4):
         1) Daily 5-days
         2) Hourly
         3) Weekly 28-days
-        4) 18 months""")
+        4) 18 months\n> """)
 
         if (option == "1" or option == "2" or option == "3" or option == "4"):
             return (option)
@@ -27,21 +35,21 @@ class Interraction:
         1) Real time data
         2) Interruptions
         3) Archives
-        4) Forecast""")
+        4) Forecast\n> """)
 
         if (option == "1" or option == "2" or option == "3"):
             return (option)
         elif (option == "4"):
-            type = getPredictionTypeprediction()
+            type = getPredictionType()
             if (type == None):
                 return (None)
             option += ".{}".format(type)
         else:
             print(printColors.FAIL + "Invalid option \"{}\"".format(option) + printColors.ENDC)
             return (None)
+        return (option)
 
-    @staticmethod
-    def commands():
+    def commands(self):
         command = None
 
         try:
@@ -50,19 +58,19 @@ class Interraction:
                 if (command == "help"):
                     print(printColors.HEADER + "Availiable commands are:\n- Export\n- Graphic\n" + printColors.ENDC)
                 elif (command == "export"):
-                    Export.export()
+                    self.__export.export()
                 elif (command == "graphic"):
-                    Graph.graph()
+                    self.__graph.graph()
                 elif (not command and command != ""):
                     print(printColors.FAIL + "Invalid command \"{}\". Use help to get the list of the available commands".format(command) + printColors.ENDC)
         except:
             pass
 
-class Export(Interraction):
+class Export:
     __databaseInstance = None
 
     def __init__(self, databaseInstance):
-        this.__databaseInstance = databaseInstance
+        self.__databaseInstance = databaseInstance
 
     ## Private method to generate the file
     def __generateFile(self, type, year):
@@ -94,14 +102,15 @@ class Export(Interraction):
         rows = self.__databaseInstance.getValuesFromYear(type, year)
         if (rows != None):
             data = pd.DataFrame(rows)
-            data.columns = rows[0].keys()
             data.to_csv(filePath, index=False)
+            print(printColors.OKGREEN + "File generated: " + filePath + printColors.ENDC)
+        else:
+            print(printColors.FAIL + "Error while generating the file. Please consult the app.log file for details" + printColors.ENDC)
 
     ## Method to gather the necessary informations to export
-    @staticmethod
-    def export():
+    def export(self):
         year = None
-        type = getType()
+        type = Interraction.getType()
 
         if (type == None):
             return
@@ -109,11 +118,11 @@ class Export(Interraction):
         self.__generateFile(type, year)
         return
 
-class Graph(Interraction):
+class Graph:
     __databaseInstance = None
 
     def __init__(self, databaseInstance):
-        this.__databaseInstance = databaseInstance
+        self.__databaseInstance = databaseInstance
 
     ## Helper function used for visualization in the following examples
     def __identify_axes(ax_dict, fontsize=30):
@@ -234,27 +243,30 @@ class Graph(Interraction):
 
         ##Creating the graphs:
         if (type == "1"):
-            fig = plt.figure(layout="constrained")
-            graphs = fig.subplot_mosaic([
-                ["chargeNB", "demandeNB", "isoNe"],
-                ["emec", "mps", "quebec"],
-                ["reserveMarginAsync10Min", "reserveMarginSync10Min", "reserveMargin30Min"],
-                ["novaScotia", "pei"]
-            ])
-            ## Parametting the graphs
-            self.__createPlots(graphs["chargeNB"], chargeNBVal)
-            self.__createPlots(graphs["demandeNB"], demandeNBVal)
-            self.__createPlots(graphs["isoNe"], isoNeVal)
-            self.__createPlots(graphs["emec"], emecVal)
-            self.__createPlots(graphs["mps"], mpsVal)
-            self.__createPlots(graphs["quebec"], quebecVal)
-            self.__createPlots(graphs["reserveMarginAsync10Min"], reserveMarginAsyncVal)
-            self.__createPlots(graphs["reserveMarginSync10Min"], reserveMarginSyncVal)
-            self.__createPlots(graphs["reserveMargin30Min"], reserveMarginVal)
-            self.__createPlots(graphs["novaScotia"], novaScotiaVal)
-            self.__createPlots(graphs["pei"], peiVal)
-            self.__identify_axes(graphs)
-            plt.show()
+            try:
+                fig = plt.figure(layout="constrained")
+                graphs = fig.subplot_mosaic([
+                    ["chargeNB", "demandeNB", "isoNe"],
+                    ["emec", "mps", "quebec"],
+                    ["reserveMarginAsync10Min", "reserveMarginSync10Min", "reserveMargin30Min"],
+                    ["novaScotia", "pei"]
+                ])
+                ## Parametting the graphs
+                self.__createPlots(graphs["chargeNB"], chargeNBVal)
+                self.__createPlots(graphs["demandeNB"], demandeNBVal)
+                self.__createPlots(graphs["isoNe"], isoNeVal)
+                self.__createPlots(graphs["emec"], emecVal)
+                self.__createPlots(graphs["mps"], mpsVal)
+                self.__createPlots(graphs["quebec"], quebecVal)
+                self.__createPlots(graphs["reserveMarginAsync10Min"], reserveMarginAsyncVal)
+                self.__createPlots(graphs["reserveMarginSync10Min"], reserveMarginSyncVal)
+                self.__createPlots(graphs["reserveMargin30Min"], reserveMarginVal)
+                self.__createPlots(graphs["novaScotia"], novaScotiaVal)
+                self.__createPlots(graphs["pei"], peiVal)
+                self.__identify_axes(graphs)
+                plt.show()
+            except Exception as error:
+                logger.error("Error: %s", error)
         elif (type == "2"):
             self.__createPlots(plt, values, xRange=len(values), yLabel="Interruption number")
             plt.show()
@@ -263,24 +275,23 @@ class Graph(Interraction):
             plt.show()
 
 
-    @staticmethod
-    def graph():
+    def graph(self):
         year = None
         type = None
-        mode = input("""Select graph style (1, 2)
+        option = input("""Select graph style (1, 2)
         1) Evolution
-        2) Comparison""")
+        2) Comparison\n> """)
 
         if (option == "1"):
             print("Which data do you want to see the evolution?")
-            type = getType()
+            type = Interraction.getType()
             if (type == None):
                 return
             year = input("Desired year: ")
             self.__generateEvolution(type, year)
         elif (option == "2"):
             print("Which data do you want to compare?")
-            type = getType()
+            type = Interraction.getType()
             if (type == None):
                 return
             years = input("Please enter the differents years separated with spaces you want the comparison to be done: ")

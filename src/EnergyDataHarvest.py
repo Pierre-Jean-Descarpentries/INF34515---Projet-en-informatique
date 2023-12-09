@@ -28,6 +28,7 @@ class EnergieNB:
     currentYear = datetime.now().year
     currentMonth = datetime.now().month
     browser = None
+    utils = Utils()
 
     def __init__(self, database):
         self.databaseUtils = database
@@ -125,6 +126,8 @@ class Archives(EnergieNB):
         ## Les éléments récupérés sont le selecteur du mois et de l'année
         for year in range(startYear, self.currentYear + 1):
             for month in range(startMonth, 13):
+                if (year == self.currentYear and month == self.currentMonth):
+                    return (fileName)
                 ## Récupère le bouton pour télécharger le fichier
                 ## Obliger de re-récupérer les éléments car la récupérationdes fichiers téléchargers changent de pages
                 obtainData = self.browser.find_element(By.ID, "ctl00_cphMainContent_lbGetData")
@@ -147,7 +150,7 @@ class Archives(EnergieNB):
                 ## Télécharge le fichier
                 obtainData.click()
                 ## Get the file name
-                fileName = Utils.getDownloadedFileName(self.browser, 60)
+                fileName = self.utils.getDownloadedFileName(self.browser, 60)
 
                 ## If file already downloaded
                 if (fileName != None and "(" in fileName):
@@ -171,7 +174,7 @@ class Archives(EnergieNB):
                         os.rename("Downloads/" + fileName, "Downloads/archive/" + fileName)
                         fileName = "Downloads/archive/" + fileName
                         ## Put in array format to append every changes at once
-                        fileContent += [Utils.readFile(fileName)]
+                        fileContent = [Utils.readFile(fileName)]
                         self.databaseUtils.saveArchiveInDatabase(fileContent, fileName)
                         time.sleep(2)
                 except Exception as error:
@@ -211,7 +214,7 @@ class Archives(EnergieNB):
                 break
             except Exception as error:
                 logger.error("Error while trying to click on button for archives: %s", error)
-        fileName = Utils.getDownloadedFileName(self.browser, 60)
+        fileName = self.utils.getDownloadedFileName(self.browser, 60)
 
         ## Si le fichier à déjà été télécharger
         if (fileName != None and "(" in fileName):
@@ -237,7 +240,7 @@ class Archives(EnergieNB):
                 self.databaseUtils.saveArchiveInDatabase(fileContent, fileName)
                 return (fileName)
         except Exception as error:
-            print(error)
+            logger.warning("Data for archive file {} could not be readed: %s".format(fileName), error)
             try:
                 os.remove("Downloads/" + fileName)
             except:
@@ -272,7 +275,7 @@ class Forecast(EnergieNB):
                     continue
                 time.sleep(2)
                 ## Get the file name
-                fileName = Utils.getDownloadedFileName(browser, 60)
+                fileName = self.utils.getDownloadedFileName(browser, 60)
             except Exception as error:
                 logger.debug("Error while scrapping the files in url: {}, line number: {}. Stopping scrapping for this page . . .\n".format(baseLink, lv))
                 missingFileLogger.info("Stopped scrapping files in the url: {}.\n{} files gathered".format(baseLink, lv - 1))
@@ -301,6 +304,7 @@ class Forecast(EnergieNB):
                     time.sleep(1)
                     fileContent = Utils.readFile(fileName)
             except Exception as error:
+                logger.warning("Data from file {} could not be readed: %s".format(fileName), error)
                 try:
                     os.remove("Downloads/" + fileName)
                 except:
