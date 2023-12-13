@@ -40,7 +40,7 @@ class Interraction:
         if (option == "1" or option == "2" or option == "3"):
             return (option)
         elif (option == "4"):
-            type = getPredictionType()
+            type = Interraction.getPredictionType()
             if (type == None):
                 return (None)
             option += ".{}".format(type)
