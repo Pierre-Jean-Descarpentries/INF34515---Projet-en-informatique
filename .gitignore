@@ -403,3 +403,5 @@ FodyWeavers.xsd
 *.env
 
 Downloads
+Rapport *
+INF*
