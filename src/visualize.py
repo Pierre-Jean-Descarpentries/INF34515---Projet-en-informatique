@@ -60,7 +60,8 @@ class Interraction:
                 elif (command == "export"):
                     self.__export.export()
                 elif (command == "graphic"):
-                    self.__graph.graph()
+                    print(printColors.HEADER + "Les graphiques sont désactivés car étant sous Docker, il est impossible d'ouvrir des fenêtres avec de l'affichage. Se faisant, les fonctions n'ont pas été testées." + printColors.ENDC)
+                    # self.__graph.graph()
                 elif (not command and command != ""):
                     print(printColors.FAIL + "Invalid command \"{}\". Use help to get the list of the available commands".format(command) + printColors.ENDC)
         except:
